@@ -1,0 +1,3 @@
+#!/bin/bash
+# pip install pycryptodome
+python3 main.py "$@"
