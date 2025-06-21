@@ -1,6 +1,8 @@
 import sys, os
 import hmac
 import hashlib
+import qrcode
+import base64
 from Crypto.Cipher import AES
 from datetime import datetime
 
@@ -22,6 +24,7 @@ def main() -> int:
             if not encrypted: return 1
             with open("ft_otp.key", 'wb') as file:
                 file.write(encrypted)
+            qrcode_generate(hexadecimal_key)
             print("Key was successfully saved in ft_otp.key.")
         elif len(sys.argv) == 3 and sys.argv[1] == "-k":
             with open(sys.argv[2], 'rb') as file:
@@ -37,6 +40,15 @@ def main() -> int:
     except Exception as e:
         return error(e)
     return 0
+
+def qrcode_generate(key):
+    binary_key = bytes.fromhex(key)
+    base32_key = base64.b32encode(binary_key).decode('utf-8').replace('=', '')
+    otp_uri = f"otpauth://totp/FT_OTP?secret={base32_key}&issuer=m"
+    img = qrcode.make(otp_uri)
+    img.show()
+    img.save("otp_qr.png")
+
 
 def hotp_algorithm(key):
     time = int(datetime.now().timestamp() // 30)
