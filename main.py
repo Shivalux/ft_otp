@@ -68,8 +68,6 @@ def qrcode_generate(key):
 
 def hotp_algorithm(key):
     binary_key = bytes.fromhex(key.decode('utf-8'))
-    print(binary_key)
-    print(key)
     time = datetime.now().timestamp()
     time_bytes = struct.pack(">Q", int(time // 30))
     hmac_result = hmac.new(binary_key, time_bytes, hashlib.sha1).digest()
