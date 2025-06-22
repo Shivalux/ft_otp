@@ -3,21 +3,36 @@ import hmac
 import hashlib
 import qrcode
 import base64
+import struct
 from Crypto.Cipher import AES
 from datetime import datetime
 
-IV = b'\x89#\xf2\xb2\x98\xf6\x18\xf4\xb7Bax,8\x8c6'
-KEY = b'\xc4\xe1\xa0_P\x01\x9c\xfc\xf5\xe2\xa2[\xb0\x96\xf9,\xdbv\t=\x88P\xb5\x15>S\xda\x19\x14\xa1[\x1d'
+# os.urandom(16)
+IV = b''
+# os.urandom(32)
+KEY = b''
 USAGE ='''\
-usage
+-------------------------------------------------------------------------------------------------
+USAGE: ./ft_otp [-g] [-k] FILENAME
+-------------------------------------------------------------------------------------------------
+Option:
+ • -g         : Accepts a hexadecimal key (at least 64 characters long) and stores the 
+                encrypted key in a file named "ft_otp.key".
+ • -k         : Generates a temporary password based on the provided key given as argument.
+ 
+Additional Notes:
+ • The hexadecimal key used with the "-g" option must be at least 64 characters in length.
+ • Ensure that the key is valid and properly formatted in hexadecimal before usage.
+ -------------------------------------------------------------------------------------------------
 '''
+
 def main() -> int:
     try:
         if len(sys.argv) == 3 and sys.argv[1] == "-g":
             with open(sys.argv[2], 'r') as file:
                 hexadecimal_key = file.read()
             if not is_hexadecimal(hexadecimal_key):
-                return error("Key must be 64 hexadecimal characters.", 1)
+                return error("Key must conation at least 64 hexadecimal characters.", 1)
             with open(sys.argv[2], 'rb') as file:
                 key = file.read()
             encrypted = key_encrypt(key)
@@ -44,22 +59,25 @@ def main() -> int:
 def qrcode_generate(key):
     binary_key = bytes.fromhex(key)
     base32_key = base64.b32encode(binary_key).decode('utf-8').replace('=', '')
-    otp_uri = f"otpauth://totp/FT_OTP?secret={base32_key}&issuer=m"
+    otp_uri = f"otpauth://totp/cybersecurity-piscine?secret={base32_key}&issuer=ft_otp"
     img = qrcode.make(otp_uri)
     img.show()
     img.save("otp_qr.png")
+    return None
 
 
 def hotp_algorithm(key):
-    time = int(datetime.now().timestamp() // 30)
-    time = format(time, 'b')
-    hmac_result = hmac.new(key, time.encode(), hashlib.sha1)
-    hmac_result = hmac_result.digest()
+    binary_key = bytes.fromhex(key.decode('utf-8'))
+    print(binary_key)
+    print(key)
+    time = datetime.now().timestamp()
+    time_bytes = struct.pack(">Q", int(time // 30))
+    hmac_result = hmac.new(binary_key, time_bytes, hashlib.sha1).digest()
     offset = hmac_result[-1] & 0x0F
     code = hmac_result[offset:offset+4]
-    binary_code = int.from_bytes(code, 'big') & 0x7FFFFFFF
+    binary_code = struct.unpack(">I", code)[0] & 0x7FFFFFFF
     otp = binary_code % (10 ** 6)
-    return otp
+    return str(otp).zfill(6)
 
 def key_decrypt(key):
     try:
