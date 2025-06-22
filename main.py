@@ -32,7 +32,7 @@ def main() -> int:
             with open(sys.argv[2], 'r') as file:
                 hexadecimal_key = file.read()
             if not is_hexadecimal(hexadecimal_key):
-                return error("Key must conation at least 64 hexadecimal characters.", 1)
+                return error("Hexadecimal key must contain at least 64 characters.", 1)
             with open(sys.argv[2], 'rb') as file:
                 key = file.read()
             encrypted = key_encrypt(key)
