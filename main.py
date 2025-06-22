@@ -29,13 +29,12 @@ Additional Notes:
 def main() -> int:
     try:
         if len(sys.argv) == 3 and sys.argv[1] == "-g":
-            with open(sys.argv[2], 'r') as file:
-                hexadecimal_key = file.read()
+            with open(sys.argv[2], 'rb') as file:
+                bkey = file.read()
+            hexadecimal_key = bkey.decode('utf-8')
             if not is_hexadecimal(hexadecimal_key):
                 return error("Hexadecimal key must contain at least 64 characters.", 1)
-            with open(sys.argv[2], 'rb') as file:
-                key = file.read()
-            encrypted = key_encrypt(key)
+            encrypted = key_encrypt(bkey)
             if not encrypted: return 1
             with open("ft_otp.key", 'wb') as file:
                 file.write(encrypted)
@@ -43,8 +42,8 @@ def main() -> int:
             print("Key was successfully saved in ft_otp.key.")
         elif len(sys.argv) == 3 and sys.argv[1] == "-k":
             with open(sys.argv[2], 'rb') as file:
-                key = file.read()
-            decrypted_key = key_decrypt(key)
+                bkey = file.read()
+            decrypted_key = key_decrypt(bkey)
             otp = hotp_algorithm(decrypted_key)
             print(otp)
         else:
