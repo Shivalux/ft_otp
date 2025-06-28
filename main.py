@@ -1,9 +1,14 @@
-import sys, os
+import sys
 import hmac
 import hashlib
+import math
 import qrcode
 import base64
 import struct
+import threading
+import tkinter as tk
+from tkinter import ttk
+from ttkbootstrap import Style
 from Crypto.Cipher import AES
 from datetime import datetime
 
@@ -13,16 +18,17 @@ IV = b''
 KEY = b''
 USAGE ='''\
 -------------------------------------------------------------------------------------------------
-USAGE: ./ft_otp [-g] [-k] FILENAME
+USAGE: ./ft_otp [-g] [-k] [-i] FILENAME
 -------------------------------------------------------------------------------------------------
 Option:
- • -g         : Accepts a hexadecimal key (at least 64 characters long) and stores the 
-                encrypted key in a file named "ft_otp.key".
- • -k         : Generates a temporary password based on the provided key given as argument.
+ • -g FILENAME  : Accepts a hexadecimal key (at least 64 characters long) and stores the 
+                  encrypted key in a file named "ft_otp.key".
+ • -k FILENAME  : Generate a temporary one-time password (OTP) using the key provided in FILENAME.
+ • -i FILENAME  : Launch the graphical interface to display the OTP using the key in FILENAME.
  
 Additional Notes:
  • The hexadecimal key used with the "-g" option must be at least 64 characters in length.
- • Ensure that the key is valid and properly formatted in hexadecimal before usage.
+ • Ensure that the key is valid and properly formatted in hexadecimal before .
  -------------------------------------------------------------------------------------------------
 '''
 
@@ -40,12 +46,15 @@ def main() -> int:
                 file.write(encrypted)
             qrcode_generate(hexadecimal_key)
             print("Key was successfully saved in ft_otp.key.")
-        elif len(sys.argv) == 3 and sys.argv[1] == "-k":
+        elif len(sys.argv) == 3 and sys.argv[1] in ["-k", "-i", "--interface"]:
             with open(sys.argv[2], 'rb') as file:
                 bkey = file.read()
             decrypted_key = key_decrypt(bkey)
-            otp = hotp_algorithm(decrypted_key)
-            print(otp)
+            if sys.argv[1] == "-k":
+                otp = hotp_algorithm(decrypted_key)
+                print(otp)
+            else:
+                graphic_interface(decrypted_key)
         else:
             print(USAGE)
             return 1
@@ -63,7 +72,6 @@ def qrcode_generate(key):
     img.show()
     img.save("otp_qr.png")
     return None
-
 
 def hotp_algorithm(key):
     binary_key = bytes.fromhex(key.decode('utf-8'))
@@ -105,6 +113,33 @@ def is_hexadecimal(hexadecimal: str) -> bool:
         if not i in "0123456789ABCDEF":
             return False
     return len(hexadecimal) >= 64
+
+def graphic_interface(key):
+    def countdown():
+        value = math.floor(datetime.now().timestamp() % 30)
+        if value == 0:
+            message.config(text=hotp_algorithm(key))
+            progress.config(style="info.Striped.Horizontal.TProgressbar")
+        elif value == 20:
+            progress.config(style="warning.Striped.Horizontal.TProgressbar")
+        elif value == 27:
+            progress.config(style="danger.Striped.Horizontal.TProgressbar")
+        progress.config(value=value)
+        root.after(1000, countdown)
+
+    root = tk.Tk()
+    root.title("42 cybersecurity: ft_otp")
+    root.config(padx="40", pady="20")
+    Style(theme="darkly")
+    root.resizable(False, False)
+    message = ttk.Label(root, text=hotp_algorithm(key), font=('Helvetica', 62), foreground="#FFB200")
+    progress = ttk.Progressbar(root, style="info.Striped.Horizontal.TProgressbar",
+                               maximum=30, value=math.floor(datetime.now().timestamp() % 30), length=230)
+    message.grid(column=1, row=2)
+    progress.grid(column=1, row=4)
+    countdown()
+    root.mainloop()
+    return
 
 def error(message: str, code=None):
     print(f"[ERROR]: {message}")
