@@ -37,7 +37,7 @@ def main() -> int:
         if len(sys.argv) == 3 and sys.argv[1] == "-g":
             with open(sys.argv[2], 'rb') as file:
                 bkey = file.read()
-            hexadecimal_key = bkey.decode('utf-8')
+            hexadecimal_key = bkey.decode('utf-8').strip()
             if not is_hexadecimal(hexadecimal_key):
                 return error("Hexadecimal key must contain at least 64 characters.", 1)
             encrypted = key_encrypt(bkey)
